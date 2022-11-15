@@ -1,13 +1,10 @@
-Shader "TC3005C/Phong"
+Shader "TC3005C/Escala de gris"
 {
     Properties // parámetros recibidos desde Unity
     {
         _MaterialAmbiental("Color Ambiental", Color) = (1, 1, 1, 1)
         _MaterialDifuso("Color Difuso", Color) = (1, 1, 1, 1)
-        _MaterialEspecular("Color Especular", Color) = (1, 1, 1, 1)
-        _Brillo("Coeficiente de brillo", float) = 100
         _AtenuacionAmbiental("Atenuacion Ambiental", float) = 0.2
-        _Textura("textura del mono", 2D) = "white" {}
     }
     SubShader // en unity un shader contiene varios posibles subshaders, unity decide cuál utilizar
     {
@@ -29,22 +26,16 @@ Shader "TC3005C/Phong"
             uniform float4 _MaterialDifuso;
             uniform float4 _LightColor0;
             uniform float _AtenuacionAmbiental;
-            uniform float4 _MaterialEspecular;
-            uniform float _Brillo;
-            uniform sampler2D _Textura;
 
             // NUEVO - definicion de structs para manejo de datos de retorno / parámetros
             struct vInput {
                 float4 vertexPos : POSITION;
                 float3 normal : NORMAL;
-                float4 coord : TEXCOORD0;
             };
 
             struct vOutput {
-                float4 vertexLocal : TEXCOORD1;
                 float4 pos : SV_POSITION;
                 float3 normal : NORMAL;
-                float4 coord : TEXCOORD0;
             };
 
 
@@ -58,8 +49,6 @@ Shader "TC3005C/Phong"
                 vOutput resultado;
                 resultado.pos = UnityObjectToClipPos(input.vertexPos);
                 resultado.normal = input.normal;
-                resultado.vertexLocal = input.vertexPos;
-                resultado.coord = input.coord;
                 return resultado;
             }
 
@@ -88,33 +77,14 @@ Shader "TC3005C/Phong"
                 
                 float4 difuso = kd * id * punto;
 
-                // CÁLCULO ESPECULAR 
+                float4 especular = float4(0, 0, 0, 1);
 
-                // en espacio global
-                float3 r = reflect(-l, n);
+                float4 resultado = ambiental + difuso + especular;
 
-                // vamos a sacar V 
-                // la posicion ya la tenemos PERO en coordenadas homogéneas
-                float3 vGlobal = mul(unity_ObjectToWorld, input.vertexLocal).xyz;
+                // sacar gris
+                float gris = (resultado.r + resultado.g + resultado.b)/3;
 
-                // ya tnemos posición de la cámara
-                // _WorldSpaceCameraPos
-                float3 v = normalize(_WorldSpaceCameraPos - vGlobal);
-
-                float4 ks = _MaterialEspecular;
-                float4 is = _LightColor0;
-                float a = _Brillo;
-
-                float4 especular = ks * is * pow(max(dot(r, v), 0), a);
-                
-
-                //return ambiental + difuso + especular;
-
-                // TEXTURA 
-                // necesitamos 2 fuentes 
-                // 1. sampler que es la textura completa
-                // 2. la coordenada específica del color que nos concierne aquí
-                return tex2D(_Textura, input.coord.xy);
+                return gris;
             }
 
             ENDCG
